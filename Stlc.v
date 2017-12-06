@@ -401,13 +401,10 @@ Proof.
         auto using VarSetFacts.union_3, VarSetFacts.remove_2.
 Qed.
 
-(* Lemma has_type_subst : forall e1 e2 c x t1 t2 ,
-  has_type c e1 t1 ->
-  Context.MapsTo x t2 c ->
-  VarSet.For_all (fun y => x <> y -> Context.find y c = Context.find y c')
-    (free_vars e1) ->
-  has_type c' e2 t2 ->
-  has_type c' (subst x e2 e1) t1.
+Lemma has_type_subst : forall e1 e2 c x t1 t2 ,
+  has_type (Context.add x t2 c) e1 t1 ->
+  has_type context_empty e2 t2 ->
+  has_type c (subst x e2 e1) t1.
 Proof.
   induction e1; intros e2 c x t1 t2 H1 H2; inversion H1; clear H1; subst.
   - apply has_type_unit.
@@ -416,7 +413,10 @@ Proof.
     + rewrite Var.eqb_eq in Heqn.
       rewrite ContextFacts.add_eq_o in H3; try assumption.
       inversion H3; subst.
-      assumption.
+      eauto using
+        context_empty_weakening,
+        VarSet_For_all_Empty,
+        has_type_empty_context_free_vars.
     + rewrite Var.eqb_neq in Heqn.
       rewrite ContextFacts.add_neq_o in H3; try assumption.
       apply has_type_var.
@@ -428,53 +428,9 @@ Proof.
       eauto using
         context_permutation, context_add_add_eq, ContextFacts.Equal_sym.
     + rewrite Var.eqb_neq in Heqn.
-      admit.
-(*       eauto using context_permutation, context_add_add_neq. *)
-  - apply has_type_app with t0; eauto.
-  - simpl.
-    apply has_type_let with t0.
-    + eauto.
-    + destruct (x =? v) eqn:Heqn.
-      * rewrite Var.eqb_eq in Heqn; subst.
-        eauto using
-          context_permutation, context_add_add_eq, ContextFacts.Equal_sym.
-      * rewrite Var.eqb_neq in Heqn.
-        apply not_eq_sym in Heqn.
-        eapply IHe1_2.
-        { eauto using context_permutation, context_add_add_neq. }
-        { admit. }
-Admitted. *)
-
-Lemma has_type_subst : forall e1 e2 c x t1 t2 ,
-  has_type (Context.add x t2 c) e1 t1 ->
-  has_type c e2 t2 ->
-  VarSet.Empty (free_vars e2) ->
-  has_type c (subst x e2 e1) t1.
-Proof.
-  induction e1; intros e2 c x t1 t2 H1 H2 H3; inversion H1; clear H1; subst.
-  - apply has_type_unit.
-  - simpl.
-    destruct (Var.eqb x v) eqn:Heqn.
-    + rewrite Var.eqb_eq in Heqn.
-      rewrite ContextFacts.add_eq_o in H4; try assumption.
-      inversion H4; subst.
-      assumption.
-    + rewrite Var.eqb_neq in Heqn.
-      rewrite ContextFacts.add_neq_o in H4; try assumption.
-      apply has_type_var.
-      assumption.
-  - simpl.
-    apply has_type_abs.
-    destruct (Var.eqb x v) eqn:Heqn.
-    + rewrite Var.eqb_eq in Heqn; subst.
-      eauto using
-        context_permutation, context_add_add_eq, ContextFacts.Equal_sym.
-    + rewrite Var.eqb_neq in Heqn.
       eapply IHe1.
       * eauto using context_permutation, context_add_add_neq.
-      * admit.
       * assumption.
-(*       eauto using context_permutation, context_add_add_neq. *)
   - apply has_type_app with t0; eauto.
   - simpl.
     apply has_type_let with t0.
@@ -484,64 +440,8 @@ Proof.
         eauto using
           context_permutation, context_add_add_eq, ContextFacts.Equal_sym.
       * rewrite Var.eqb_neq in Heqn.
-        apply not_eq_sym in Heqn.
-        eapply IHe1_2.
-        { eauto using context_permutation, context_add_add_neq. }
-        { admit. }
-        { assumption. }
-Admitted.
-
-Lemma FOO1 : forall x t1 t2 (c : context),
-  Context.MapsTo x t1 c ->
-  Context.MapsTo x t2 c ->
-  t1 = t2.
-Proof. Admitted.
-
-Lemma FOO2 : forall x e1 e2 (c : heap),
-  Heap.MapsTo x e1 c ->
-  Heap.MapsTo x e2 c ->
-  e1 = e2.
-Proof. Admitted.
-
-Theorem preservation0 : forall c e1 e2 t h,
-  has_type c e1 t ->
-  VarSet.For_all (fun x => exists t e,
-    Context.MapsTo x t c /\ Heap.MapsTo x e h /\ has_type c e t) (free_vars e1) ->
-  eval h e1 e2 ->
-  has_type c e2 t.
-Proof.
-  intros c e1 e2 t h HAS_TYPE.
-  generalize dependent e2.
-  generalize dependent h.
-  induction HAS_TYPE; intros h e3 HH EVAL.
-  - inversion EVAL.
-  - inversion EVAL; clear EVAL; subst.
-    unfold VarSet.For_all in HH.
-    simpl in HH.
-    specialize (HH x (VarSetFacts.singleton_2 eq_refl))
-      as [ty [e [HH1 [HH2 HH3]]]].
-    apply Context.find_2 in H.
-    apply Heap.find_2 in H2.
-    erewrite FOO1 in *; try eassumption.
-    erewrite FOO2 with (e1:=e3) in *; eassumption.
-  - inversion EVAL.
-  - unfold VarSet.For_all in *.
-    inversion EVAL; clear EVAL; subst.
-    + apply has_type_app with t1; eauto using VarSetFacts.union_2.
-    + apply has_type_app with t1; eauto using VarSetFacts.union_3.
-    + inversion HAS_TYPE1; clear HAS_TYPE1; subst.
-      apply has_type_subst with t1.
-      * assumption.
-      * assumption.
-      * admit.
-  - unfold VarSet.For_all in *.
-    inversion EVAL; clear EVAL; subst.
-    + apply has_type_let with t1; eauto using VarSetFacts.union_2.
-    + apply has_type_subst with t1.
-      * assumption.
-      * assumption.
-      * admit.
-Admitted.
+        eauto using context_permutation, context_add_add_neq, not_eq_sym.
+Qed.
 
 Theorem preservation : forall e1 e2 t,
   has_type context_empty e1 t ->
@@ -571,23 +471,6 @@ Proof.
       * eauto.
     + eauto using has_type_subst, has_type_empty_context_free_vars.
 Qed.
-
-(* Theorem preservation : forall e1 e2 t,
-  has_type context_empty e1 t ->
-  eval heap_empty e1 e2 ->
-  has_type context_empty e2 t.
-Proof.
-  intros e1 e2 t HAS_TYPE EVAL.
-  eapply preservation0.
-  - eassumption.
-  - apply has_type_empty_context_free_vars in HAS_TYPE.
-    apply VarSetProps.empty_is_empty_1 in HAS_TYPE.
-    intros x FREE_VAR.
-    rewrite HAS_TYPE in FREE_VAR.
-    apply VarSetFacts.empty_iff in FREE_VAR.
-    inversion FREE_VAR.
-  - eassumption.
-Qed. *)
 
 Theorem preservation_eval_star : forall e1 e2 t,
   has_type context_empty e1 t ->
