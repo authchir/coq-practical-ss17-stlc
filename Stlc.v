@@ -135,6 +135,8 @@ Definition heap := Heap.t expr.
 Definition heap_empty : heap := Heap.empty expr.
 
 Inductive eval : heap -> expr -> expr -> Prop :=
+(* I initially wanted to not use substitution and put values in the heap,
+   but it does not seems to be possible with small-step semantics. *)
 | eval_var : forall h x e,
     Heap.find x h = Some e->
     eval h (evar x) e
@@ -152,13 +154,29 @@ Inductive eval : heap -> expr -> expr -> Prop :=
     value v2 ->
     eval h (eapp (eabs x t e) v2) (subst x v2 e)
 
+(*
+Does not work because [v2] will only by in the heap for a single evaluation step.
+| eval_beta : forall h x t e v2 e3,
+    value v2 ->
+    eval (Heap.add x v2 h) e e3 ->
+    eval h (eapp (eabs x t e) v2) e3
+*)
+
 | eval_let1 : forall h x e1 e2 e3,
     eval h e1 e3 ->
     eval h (elet x e1 e2) (elet x e3 e2)
 
 | eval_let2 : forall h x v1 e2,
     value v1 ->
-    eval h (elet x v1 e2) (subst x v1 e2).
+    eval h (elet x v1 e2) (subst x v1 e2)
+(*
+Does not work because [v2] will only by in the heap for a single evaluation step.
+| eval_let2 : forall h x v1 e2 e3,
+    value v1 ->
+    eval (Heap.add x v1 h) e2 e3
+    eval h (elet x v1 e2) e3
+*)
+.
 
 Inductive eval_star : heap -> expr -> expr -> Prop :=
 | eval_star_refl : forall h e,
