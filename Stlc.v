@@ -195,12 +195,10 @@ Lemma VarSet_For_all_remove : forall x (h : heap) s e,
   VarSet.For_all (fun y => Heap.In y (Heap.add x e h)) s.
 Proof.
   intros x h s e H1 z H2.
-  destruct (Var.eqb x z) eqn:Heqn.
-  - apply Var.eqb_eq in Heqn; subst.
-    apply HeapFacts.add_in_iff.
+  compare x z; intros Heqn.
+  - apply HeapFacts.add_in_iff.
     auto.
-  - apply Var.eqb_neq in Heqn.
-    specialize (H1 z).
+  - specialize (H1 z).
     simpl in H1.
     apply VarSetFacts.remove_2 with (x:=x) in H2; try assumption.
     apply HeapFacts.add_in_iff.
@@ -321,11 +319,9 @@ Proof.
     apply IHhas_type.
     unfold Context.Equal.
     intros y.
-    destruct (Var.eqb x y) eqn:Heqn.
-    + rewrite Var.eqb_eq in Heqn.
-      repeat (rewrite ContextFacts.add_eq_o; try trivial).
-    + rewrite Var.eqb_neq in Heqn.
-      repeat (rewrite ContextFacts.add_neq_o; try trivial).
+    compare x y; intros Heqn.
+    + repeat (rewrite ContextFacts.add_eq_o; try trivial).
+    + repeat (rewrite ContextFacts.add_neq_o; try trivial).
   - apply has_type_app with (t1:=t1); auto.
   - (* Why does rewriting not work here but works a few steps later? *)
     (* rewrite <- H2. *)
@@ -340,11 +336,9 @@ Lemma context_add_add_eq : forall (c : context) x t1 t2,
     (Context.add x t1 c) (Context.add x t1 (Context.add x t2 c)).
 Proof.
   intros c x t1 t2 y.
-  destruct (Var.eqb x y) eqn:Heqn.
-  - rewrite Var.eqb_eq in Heqn.
-    repeat (rewrite ContextFacts.add_eq_o; try trivial).
-  - rewrite Var.eqb_neq in Heqn.
-    repeat (rewrite ContextFacts.add_neq_o; try trivial).
+  compare x y; intros Heqn.
+  - repeat (rewrite ContextFacts.add_eq_o; try trivial).
+  - repeat (rewrite ContextFacts.add_neq_o; try trivial).
 Qed.
 
 Lemma context_add_add_neq : forall (c : context) x1 x2 t1 t2,
@@ -354,10 +348,8 @@ Lemma context_add_add_neq : forall (c : context) x1 x2 t1 t2,
     (Context.add x2 t2 (Context.add x1 t1 c)).
 Proof.
   intros c x1 x2 t1 t2 H y.
-  destruct (Var.eqb x1 y) eqn:Heqn1;
-  destruct (Var.eqb x2 y) eqn:Heqn2;
-  try rewrite Var.eqb_eq in *;
-  try rewrite Var.eqb_neq in *.
+  compare x1 y; intros Heqn1;
+  compare x2 y; intros Heqn2.
   - congruence.
   - rewrite ContextFacts.add_eq_o; try trivial.
     rewrite ContextFacts.add_neq_o; try trivial.
@@ -387,12 +379,10 @@ Proof.
     apply IHhas_type.
     intros y FREE_VAR.
     simpl in H2.
-    destruct (Var.eqb x y) eqn:Heqn.
-    + apply Var.eqb_eq in Heqn.
-      repeat (rewrite ContextFacts.add_eq_o; try assumption).
+    compare x y; intros Heqn.
+    + repeat (rewrite ContextFacts.add_eq_o; try assumption).
       reflexivity.
-    + apply Var.eqb_neq in Heqn.
-      repeat (rewrite ContextFacts.add_neq_o; try assumption).
+    + repeat (rewrite ContextFacts.add_neq_o; try assumption).
       auto using VarSetFacts.remove_2.
   - apply has_type_app with t1.
     + apply IHhas_type1.
@@ -410,11 +400,9 @@ Proof.
       auto using VarSetFacts.union_2.
     + apply IHhas_type2.
       intros y FREE_VAR.
-      destruct (Var.eqb x y) eqn:Heqn.
-      * apply Var.eqb_eq in Heqn.
-        repeat rewrite ContextFacts.add_eq_o; trivial.
-      * apply Var.eqb_neq in Heqn.
-        repeat rewrite ContextFacts.add_neq_o; trivial.
+      compare x y; intros Heqn.
+      * repeat rewrite ContextFacts.add_eq_o; trivial.
+      * repeat rewrite ContextFacts.add_neq_o; trivial.
         simpl in H2.
         auto using VarSetFacts.union_3, VarSetFacts.remove_2.
 Qed.
