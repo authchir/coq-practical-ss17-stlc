@@ -25,10 +25,11 @@ Lemma VarSet_For_all_Empty : forall P s,
   VarSet.For_all P s.
 Proof.
   intros P s H1 x H2.
+  exfalso.
   apply VarSetProps.empty_is_empty_1 in H1.
   rewrite H1 in H2.
   apply VarSetFacts.empty_iff in H2.
-  inversion H2.
+  contradiction.
 Qed.
 
 Lemma VarSet_For_all_union_spec : forall P s s',
@@ -36,26 +37,9 @@ Lemma VarSet_For_all_union_spec : forall P s s',
   VarSet.For_all P s /\ VarSet.For_all P s'.
 Proof.
   intros P s s' H.
-  induction s using VarSetProps.set_induction; subst.
-  - apply VarSetProps.empty_is_empty_1 in H0.
-    split.
-    + intros x contra.
-      rewrite H0 in contra.
-      apply VarSetFacts.empty_iff in contra.
-      inversion contra.
-    + intros x H2.
-      specialize (H x).
-      apply VarSetFacts.union_3 with (s:=s) in H2.
-      auto.
-  - split.
-    + intros y H2.
-      specialize (H y).
-      apply VarSetFacts.union_2 with (s':=s') in H2.
-      auto.
-    + intros y H2.
-      unfold VarSet.For_all in H.
-      apply VarSetFacts.union_3 with (s:=s2) in H2.
-      auto.
+  induction s using VarSetProps.set_induction;
+    subst; unfold VarSet.For_all in *;
+    split; auto using VarSetFacts.union_2, VarSetFacts.union_3.
 Qed.
 
 Inductive type : Set :=
@@ -242,7 +226,7 @@ Qed.
 
 Lemma has_type_free_vars_in_context : forall c e t,
   has_type c e t ->
-  VarSet.For_all (fun x => Context.mem x c = true) (free_vars e).
+  VarSet.For_all (fun x => Context.In x c) (free_vars e).
 Proof.
   intros c e t H.
   induction H; simpl.
@@ -250,7 +234,6 @@ Proof.
     apply VarSetFacts.empty_iff in contra.
     inversion contra.
   - intros y H2.
-    apply Context.mem_1.
     apply ContextFacts.in_find_iff.
     apply VarSet.singleton_spec in H2.
     subst.
@@ -259,17 +242,16 @@ Proof.
   - intros y H2.
     unfold VarSet.For_all in *.
     apply VarSet.remove_spec in H2 as [H2 H3].
-    specialize (IHhas_type y H2).
-    rewrite ContextFacts.add_neq_b in IHhas_type; auto.
+    apply not_eq_sym in H3.
+    eapply (ContextFacts.add_neq_in_iff c); eauto.
   - intros x H2.
     apply VarSet.union_spec in H2 as [H2 | H2]; auto.
   - intros y H1.
     apply VarSet.union_spec in H1 as [H1 | H1].
     + auto.
     + apply VarSet.remove_spec in H1 as [H1 H2].
-      apply IHhas_type2 in H1.
-      apply not_eq_sym in H2.
-      rewrite ContextFacts.add_neq_b in H1; assumption.
+    apply not_eq_sym in H2.
+    eapply (ContextFacts.add_neq_in_iff c); eauto.
 Qed.
 
 Lemma has_type_empty_context_free_vars : forall e t,
@@ -280,15 +262,16 @@ Proof.
   apply has_type_free_vars_in_context in H.
   induction (free_vars e) using VarSetProps.set_induction.
   - assumption.
-  - rename t0_1 into s.
+  - exfalso.
+    rename t0_1 into s.
     rename t0_2 into s'.
     apply VarSetProps.Add_Equal in H1.
     unfold VarSet.For_all in *.
     specialize (H x).
     rewrite H1 in H.
     specialize (H (VarSetFacts.add_1 s eq_refl)).
-    rewrite ContextFacts.empty_a in H.
-    discriminate.
+    apply ContextFacts.empty_in_iff in H.
+    contradiction.
 Qed.
 
 Theorem progress : forall e1 t,
